@@ -1,14 +1,29 @@
-export const saveForOffline = async (id, blob) => {
-  const db = await openDB("offline-audio", 1, {
+import { openDB } from "idb";
+
+const DB_NAME = "offline-audio-db";
+const STORE_NAME = "tracks";
+
+export const getDB = () =>
+  openDB(DB_NAME, 1, {
     upgrade(db) {
-      db.createObjectStore("tracks");
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
     }
   });
 
-  await db.put("tracks", blob, id);
+export const saveTrackOffline = async (trackId, audioBlob) => {
+  const db = await getDB();
+  await db.put(STORE_NAME, audioBlob, trackId);
 };
 
-export const getOfflineTrack = async (id) => {
-  const db = await openDB("offline-audio", 1);
-  return db.get("tracks", id);
+export const getOfflineTrack = async (trackId) => {
+  const db = await getDB();
+  return db.get(STORE_NAME, trackId);
+};
+
+export const isTrackOffline = async (trackId) => {
+  const db = await getDB();
+  const track = await db.get(STORE_NAME, trackId);
+  return !!track;
 };
