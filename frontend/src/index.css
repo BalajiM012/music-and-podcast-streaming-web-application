@@ -1,0 +1,26 @@
+body {
+  margin: 0;
+  background: black;
+  color: white;
+  font-family: sans-serif;
+}
+
+.visualizer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+}
+
+.player {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111;
+  padding: 10px 20px;
+  border-radius: 8px;
+}
+
+.page {
+  padding: 40px;
+}
