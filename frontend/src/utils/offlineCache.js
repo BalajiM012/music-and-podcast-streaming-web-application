@@ -1,7 +1,7 @@
 import { openDB } from "idb";
 
-const DB_NAME = "offline-audio-db";
-const STORE_NAME = "tracks";
+const DB_NAME = "offline-music-db";
+const STORE_NAME = "songs";
 
 export const getDB = () =>
   openDB(DB_NAME, 1, {
@@ -12,18 +12,20 @@ export const getDB = () =>
     }
   });
 
-export const saveTrackOffline = async (trackId, audioBlob) => {
+// Save uploaded song
+export const saveSongOffline = async (songId, file) => {
   const db = await getDB();
-  await db.put(STORE_NAME, audioBlob, trackId);
+  await db.put(STORE_NAME, file, songId);
 };
 
-export const getOfflineTrack = async (trackId) => {
+// Get song for playback
+export const getSongOffline = async (songId) => {
   const db = await getDB();
-  return db.get(STORE_NAME, trackId);
+  return db.get(STORE_NAME, songId);
 };
 
-export const isTrackOffline = async (trackId) => {
+// List all offline songs
+export const getAllOfflineSongs = async () => {
   const db = await getDB();
-  const track = await db.get(STORE_NAME, trackId);
-  return !!track;
+  return db.getAllKeys(STORE_NAME);
 };
