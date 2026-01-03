@@ -1,7 +1,13 @@
 import { useEffect, useRef } from "react";
 import { usePlayer } from "../../context/PlayerContext";
 
-export default function AudioVisualizer() {
+/**
+ * mode:
+ * "circle"  → beat pulse circle (default)
+ * "bars"    → frequency bars
+ * "wave"    → waveform
+ */
+export default function AudioVisualizer({ mode = "circle" }) {
   const canvasRef = useRef(null);
   const { analyser } = usePlayer();
 
@@ -11,23 +17,27 @@ export default function AudioVisualizer() {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
 
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
 
-    const draw = () => {
-      requestAnimationFrame(draw);
-
+    const drawCircle = () => {
       analyser.getByteFrequencyData(dataArray);
 
       ctx.fillStyle = "rgba(0,0,0,0.25)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // bass = beat
+      // bass energy = beat
       const bass = dataArray.slice(0, 10);
-      const energy = bass.reduce((a, b) => a + b, 0) / bass.length;
+      const energy =
+        bass.reduce((a, b) => a + b, 0) / bass.length;
 
       ctx.beginPath();
       ctx.arc(
@@ -42,8 +52,70 @@ export default function AudioVisualizer() {
       ctx.stroke();
     };
 
-    draw();
-  }, [analyser]);
+    const drawBars = () => {
+      analyser.getByteFrequencyData(dataArray);
 
-  return <canvas ref={canvasRef} className="visualizer" />;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const barWidth = canvas.width / bufferLength;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const value = dataArray[i];
+        const barHeight = value * 1.3;
+
+        ctx.fillStyle = `hsl(${i * 2}, 100%, 60%)`;
+        ctx.fillRect(
+          i * barWidth,
+          canvas.height - barHeight,
+          barWidth - 1,
+          barHeight
+        );
+      }
+    };
+
+    const drawWave = () => {
+      analyser.getByteTimeDomainData(dataArray);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.beginPath();
+      ctx.strokeStyle = "#00ffff";
+      ctx.lineWidth = 2;
+
+      const sliceWidth = canvas.width / bufferLength;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * canvas.height) / 2;
+
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+
+        x += sliceWidth;
+      }
+
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+    };
+
+    const animate = () => {
+      requestAnimationFrame(animate);
+
+      if (mode === "bars") drawBars();
+      else if (mode === "wave") drawWave();
+      else drawCircle(); // default
+    };
+
+    animate();
+
+    return () => window.removeEventListener("resize", resize);
+  }, [analyser, mode]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="visualizer fixed inset-0 -z-10"
+    />
+  );
 }
