@@ -28,26 +28,42 @@ export default function AudioVisualizer({ mode = "circle" }) {
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
 
+    /* ===============================
+       SMOOTH BEAT DETECTION (EMA)
+    =============================== */
+    let smoothEnergy = 0;
+    const SMOOTHING = 0.15;      // lower = smoother
+    const BEAT_THRESHOLD = 140;  // tweak if needed
+
     const drawCircle = () => {
       analyser.getByteFrequencyData(dataArray);
 
       ctx.fillStyle = "rgba(0,0,0,0.25)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // bass energy = beat
+      // ---- bass energy (raw) ----
       const bass = dataArray.slice(0, 10);
-      const energy =
+      const rawEnergy =
         bass.reduce((a, b) => a + b, 0) / bass.length;
+
+      // ---- exponential moving average ----
+      smoothEnergy =
+        smoothEnergy * (1 - SMOOTHING) + rawEnergy * SMOOTHING;
+
+      // ---- beat detection ----
+      const isBeat = smoothEnergy > BEAT_THRESHOLD;
+
+      const radius = isBeat ? 200 : 120;
 
       ctx.beginPath();
       ctx.arc(
         canvas.width / 2,
         canvas.height / 2,
-        80 + energy,
+        radius,
         0,
         Math.PI * 2
       );
-      ctx.strokeStyle = `hsl(${energy * 2}, 100%, 60%)`;
+      ctx.strokeStyle = `hsl(${smoothEnergy * 2}, 100%, 60%)`;
       ctx.lineWidth = 4;
       ctx.stroke();
     };
